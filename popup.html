@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 300px; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; font-size: 13px; color: #1a1a1a; background: #fff; }
+
+.header { padding: 16px; background: linear-gradient(135deg, #0078d4, #005a9e); color: #fff; }
+.header h1 { font-size: 14px; font-weight: 600; }
+.header p { font-size: 11px; opacity: 0.85; margin-top: 4px; }
+
+.section { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; }
+.section:last-child { border-bottom: none; }
+
+.row { display: flex; align-items: center; justify-content: space-between; }
+.row label { font-size: 13px; }
+
+.toggle { position: relative; width: 40px; height: 22px; cursor: pointer; }
+.toggle input { display: none; }
+.toggle .slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; border-radius: 11px; transition: 0.2s; }
+.toggle .slider::before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }
+.toggle input:checked + .slider { background: #0078d4; }
+.toggle input:checked + .slider::before { transform: translateX(18px); }
+
+.status { padding: 12px 16px; background: #f8f8f8; }
+.status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 12px; }
+.status-grid dt { color: #666; }
+.status-grid dd { color: #1a1a1a; font-weight: 500; text-align: right; }
+
+.btn { display: block; width: 100%; padding: 8px; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; background: #fff; color: #333; cursor: pointer; text-align: center; margin-top: 8px; }
+.btn:hover { background: #f5f5f5; }
+.btn-danger { color: #d32f2f; border-color: #f5c6cb; }
+.btn-danger:hover { background: #fef0f0; }
+
+.blacklist-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.tag { display: inline-flex; align-items: center; padding: 2px 8px; font-size: 11px; background: #f0f0f0; border-radius: 10px; }
+.tag .remove { margin-left: 4px; cursor: pointer; color: #999; font-size: 13px; }
+.tag .remove:hover { color: #d32f2f; }
+.empty-hint { font-size: 11px; color: #999; margin-top: 8px; }
+
+.notice { padding: 10px 16px; background: #fff3cd; border-bottom: 1px solid #f0e0a0; font-size: 12px; color: #856404; }
+
+.footer { padding: 10px 16px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #f0f0f0; }
+.footer a { color: #0078d4; text-decoration: none; margin-left: 4px; }
+.footer a:hover { text-decoration: underline; }
+
+.donate-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; }
+.donate-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); }
+.donate-content { position: relative; margin: 20px auto; width: 260px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+.donate-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; font-size: 14px; font-weight: 600; border-bottom: 1px solid #f0f0f0; }
+.donate-close { cursor: pointer; font-size: 18px; color: #999; }
+.donate-close:hover { color: #333; }
+.donate-body { padding: 16px; text-align: center; }
+.donate-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
+.donate-tab { padding: 4px 16px; font-size: 12px; border: 1px solid #ddd; border-radius: 14px; background: #fff; cursor: pointer; color: #666; }
+.donate-tab.active { background: #0078d4; color: #fff; border-color: #0078d4; }
+.donate-qr { min-height: 120px; display: flex; align-items: center; justify-content: center; }
+.qr-placeholder { font-size: 11px; color: #999; line-height: 1.8; }
+.qr-placeholder code { background: #f5f5f5; padding: 1px 4px; border-radius: 2px; font-size: 10px; }
+.donate-hint { font-size: 11px; color: #999; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1 data-i18n="title">AutoZoom</h1>
+  <p data-i18n="subtitle"></p>
+</div>
+
+<div class="section">
+  <div class="row">
+    <label data-i18n="enable"></label>
+    <label class="toggle">
+      <input type="checkbox" id="enableToggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+</div>
+
+<div class="notice" id="manualZoomNotice" style="display:none;">
+  <span data-i18n="manualNotice"></span>
+  <button class="btn" id="resetManualZoom" style="margin-top:6px;" data-i18n="restoreBtn"></button>
+</div>
+
+<div class="status">
+  <dl class="status-grid">
+    <dt data-i18n="browserWidth"></dt>
+    <dd id="outerWidth">-</dd>
+    <dt data-i18n="pageWidth"></dt>
+    <dd id="innerWidth">-</dd>
+    <dt data-i18n="sidebarWidth"></dt>
+    <dd id="sidebarWidth">-</dd>
+    <dt data-i18n="currentZoom"></dt>
+    <dd id="zoomLevel">-</dd>
+    <dt data-i18n="statusLabel"></dt>
+    <dd id="statusText" data-i18n="statusNormal"></dd>
+  </dl>
+</div>
+
+<div class="section">
+  <div class="row">
+    <label data-i18n="blacklistTitle"></label>
+  </div>
+  <button class="btn" id="toggleBlacklist"></button>
+  <div>
+    <div class="blacklist-tags" id="blacklistTags"></div>
+    <div class="empty-hint" id="emptyHint" style="display:none;" data-i18n="emptyBlacklist"></div>
+  </div>
+</div>
+
+<div class="footer">
+  <span data-i18n="likeIt"></span>
+  <a href="#" id="donateLink" data-i18n="buyCoffee"></a>
+</div>
+
+<div class="donate-modal" id="donateModal" style="display:none;">
+  <div class="donate-overlay" id="donateOverlay"></div>
+  <div class="donate-content">
+    <div class="donate-header">
+      <span data-i18n="thanks"></span>
+      <span class="donate-close" id="donateClose">&times;</span>
+    </div>
+    <div class="donate-body">
+      <div class="donate-tabs">
+        <button class="donate-tab active" data-tab="wechat" data-i18n="wechat"></button>
+        <button class="donate-tab" data-tab="alipay" data-i18n="alipay"></button>
+      </div>
+      <div class="donate-qr" id="qrArea">
+        <div class="qr-placeholder" id="qrPlaceholder"></div>
+        <img id="qrImage" style="display:none; max-width:200px; max-height:200px; border-radius:4px;">
+      </div>
+      <p class="donate-hint" data-i18n="scanHint"></p>
+    </div>
+  </div>
+</div>
+
+<script src="messages.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>
